@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGP Simulator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-8">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-blue-600 mb-6 border-b pb-2">BGP Routing Simulator</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block font-semibold mb-2">Topology (CAIDA CSV):</label>
+                <input type="file" id="caidaFile" class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block font-semibold mb-2">ROV ASNs (CSV):</label>
+                <input type="file" id="rovFile" class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block font-semibold mb-2">Announcements (CSV):</label>
+                <input type="file" id="annsFile" class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block font-semibold mb-2">Target ASN:</label>
+                <input type="number" id="targetAsn" class="w-full border p-2 rounded" placeholder="e.g. 25">
+            </div>
+        </div>
+
+        <button id="runBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-200">
+            Run Simulation
+        </button>
+
+        <div class="mt-8">
+            <h2 class="text-xl font-bold mb-2">RIB Output:</h2>
+            <pre id="output" class="bg-gray-900 text-green-400 p-4 rounded overflow-auto h-64 shadow-inner text-sm">Awaiting input...</pre>
+        </div>
+    </div>
+
+    <!-- Load the WASM module -->
+    <script type="module">
+        import Module from './bgp_sim.js';
+        
+        let bgpModule;
+        // Initialize the module when the page loads
+        Module().then(instance => {
+            bgpModule = instance;
+            console.log("WASM Module Loaded!");
+        });
+
+        // Helper to read a file as a string
+        const readFileAsync = (file) => {
+            return new Promise((resolve, reject) => {
+                if (!file) { resolve(""); return; } // Return empty string if no file
+                let reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        };
+
+        document.getElementById('runBtn').addEventListener('click', async () => {
+            if (!bgpModule) {
+                alert("Simulator is still loading, please wait a second!");
+                return;
+            }
+
+            const caidaFile = document.getElementById('caidaFile').files[0];
+            const rovFile = document.getElementById('rovFile').files[0];
+            const annsFile = document.getElementById('annsFile').files[0];
+            const targetAsn = parseInt(document.getElementById('targetAsn').value);
+
+            if (!caidaFile || !annsFile || isNaN(targetAsn)) {
+                alert("Please provide the Topology, Announcements, and a valid Target ASN.");
+                return;
+            }
+
+            document.getElementById('output').textContent = "Running simulation... (this might take a second for large graphs)";
+
+            try {
+                // Read files into strings
+                const caidaStr = await readFileAsync(caidaFile);
+                const rovStr = await readFileAsync(rovFile);
+                const annsStr = await readFileAsync(annsFile);
+
+                // RUN THE C++ WASM FUNCTION!
+                const result = bgpModule.runSimulation(caidaStr, rovStr, annsStr, targetAsn);
+                
+                document.getElementById('output').textContent = result;
+            } catch (err) {
+                document.getElementById('output').textContent = "Error: " + err;
+            }
+        });
+    </script>
+</body>
+</html>

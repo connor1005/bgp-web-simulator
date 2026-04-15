@@ -1,6 +1,6 @@
 # BGP Simulator (WebAssembly Edition)
 
-**Live Demo:** [bgp.connor-ingram.com](bgp.connor-ingram.com)
+**Live Demo:** [bgp.connor-ingram.com](https://bgp.connor-ingram.com)
 
 This is a purely client-side, browser-based implementation of the BGP Simulator. The core engine is written in C++ and compiled to WebAssembly (WASM) using Emscripten, allowing massive graph traversals and BGP propagation to run at near-native speeds directly in the user's browser without a backend server.
 
